@@ -285,7 +285,7 @@ class MainWindow(QMainWindow):
     def execute_this_fn(self, progress_callback):
         for n in range(0, 5):
             time.sleep(1)
-            progress_callback.emit(n * 100 / 4)
+            progress_callback.emit(int(n * 100 / 4))
 
         return "Done."
 
