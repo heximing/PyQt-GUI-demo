@@ -6,7 +6,7 @@ from PyQt_ex import MainWindow
 def excepthook(exc_type, exc_value, exc_tb):
     tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     print("Error caught!!\n", tb)
-    QtWidgets.QApplication.quit()  # or QtWidgets.QApplication.exit(0)
+    QApplication.quit()  # or QtWidgets.QApplication.exit(0)
 
 if __name__ == "__main__":
 
