@@ -36,6 +36,8 @@ from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QMessageBox,
+    QTextEdit,
+    QScrollArea,
 )
 
 
@@ -183,11 +185,14 @@ class MainWindow(QMainWindow):
 
         main_layout = QVBoxLayout()
         btn_layout = QHBoxLayout()
+        slider_layout = QHBoxLayout()
+        text_layout = QHBoxLayout()
+        text_layout_ex = QVBoxLayout()
 
-        self.counter = 0
+        self.counter = 0.0
         self.timer = None
         self.timer = QTimer()
-        self.timer.setInterval(1000)
+        self.timer.setInterval(100)
         self.timer.timeout.connect(self.update_count)
         self.timer.start()
         self.label = QLabel("Start")
@@ -212,11 +217,51 @@ class MainWindow(QMainWindow):
             btn_layout.addWidget(btn[i])
         main_layout.addLayout(btn_layout)
 
+        textbox1 = QTextEdit()
+        textbox1.setMinimumHeight(100)
+        textbox2 = QTextEdit()
+        for i in range(22):
+            textbox1.append("-----------QTextEdit-----------{}".format(i))
+            textbox2.append("-----------QTextEdit2-----------{}".format(i))
+        text_layout_ex.addWidget(textbox1)
+        for i in range(11):
+            text_layout_ex.addWidget(QLabel("This is QLabel #{}".format(i)))
+        text_layout.addLayout(text_layout_ex)
+        text_layout.addWidget(textbox2)
+        text_widget = QWidget()
+        text_widget.setLayout(text_layout)
+        scroll = QScrollArea()
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setWidgetResizable(True)
+        scroll.setMaximumHeight(200)
+        scroll.setWidget(text_widget)  # Do not use .setLayout(text_layout)
+        main_layout.addWidget(scroll)  # This way there will be 2 V-scrollbar
+
+        sli = []
+        """
+        QSlider inherits a comprehensive set of signals:
+            valueChanged(): Emitted when the slider’s value has changed. The tracking() determines whether this signal is emitted during user interaction.
+            sliderPressed(): Emitted when the user starts to drag the slider.
+            sliderMoved(): Emitted when the user drags the slider.
+            sliderReleased(): Emitted when the user releases the slider.
+        """
+        for i in range(4):
+            sli.append(QSlider(Qt.Horizontal))
+            sli[i].setMinimum(0)
+            sli[i].setMaximum(100)
+            sli[i].setTickPosition(QSlider.NoTicks)
+            sli[i].valueChanged.connect(lambda s, num=i: self.slider_click(signal=s, sli_num=num))
+            slider_layout.addWidget(sli[i])
+        main_layout.addLayout(slider_layout)
+
         tabs = QTabWidget()
         tabs.setTabPosition(QTabWidget.North)
         tabs.setMovable(True)
+        tabs.setMinimumHeight(100)
         for n, color in enumerate(["red", "green", "blue", "yellow"]):
             tabs.addTab(Color(color), color)
+        tabs.setCurrentIndex(1)
         main_layout.addWidget(tabs)
 
         dummy_widget = QWidget()
@@ -231,8 +276,7 @@ class MainWindow(QMainWindow):
         # Some icons by Yusuke Kamiyamane. Licensed under a Creative Commons Attribution 3.0 License.
         button_action = QAction(QIcon("abacus.png"), "&Your Button", self)
         button_action.setStatusTip("This is your button")
-        # TODO: .connect(lambda s: self.button_click(signal=s, btn_num=None, btn_name=None)) will cause error; why?
-        button_action.toggled.connect(lambda s: self.tool_bar_click(signal=s))  # .triggered = .toggled
+        button_action.triggered.connect(lambda s: self.tool_bar_click(signal=s))  # .triggered = .toggled
         button_action.setCheckable(True)
         # You can enter keyboard shortcuts using key names (e.g. Ctrl+p)
         # Qt.namespace identifiers (e.g. Qt.CTRL + Qt.Key_P)
@@ -242,7 +286,7 @@ class MainWindow(QMainWindow):
 
         button_action2 = QAction(QIcon("acorn.png"), "Your &Button2", self)
         button_action2.setStatusTip("This is your button2")
-        button_action2.triggered.connect(self.tool_bar_click)
+        button_action2.toggled.connect(self.tool_bar_click)
         button_action2.setCheckable(True)
         toolbar.addAction(button_action2)
 
@@ -306,8 +350,8 @@ class MainWindow(QMainWindow):
         self.threadpool.start(worker)
 
     def update_count(self):
-        self.counter += 1
-        self.label.setText("Counter: %d" % self.counter)
+        self.counter += 0.1
+        self.label.setText("Counter: {0:.1f}".format(self.counter))
 
     def tool_bar_click(self, signal):
         print("tool_bar_click(): Checked signal =", type(signal), signal)
@@ -318,11 +362,18 @@ class MainWindow(QMainWindow):
             power = Power.ON
         else:
             power = Power.OFF
-        self.btn_dict["Power_" + btn_name] = power
+        self.btn_dict["Power_" + str(btn_name)] = power
         print("button_click(): Checked signal = {}, btn_num = {}, btn_name = '{}'".format(signal, btn_num, btn_name))
         print("self.btn_dict =", type(self.btn_dict), self.btn_dict)
         if btn_name == "demo":
             self.oh_no()
+
+    def slider_click(self, signal: int = None, sli_num: int = None):
+        """
+        QSlider.valueChanged() & QSlider.sliderMoved() emit signal with QSlider.value()
+        QSlider.sliderReleased() & QSlider.sliderPressed() emit signal without any data
+        """
+        print("slider_click(): Checked signal = {}, sli_num = {}".format(signal, sli_num))
 
     def q_message_box_clicked(self, s):
         print("QMessageBox Checked:", s, end='; ')
