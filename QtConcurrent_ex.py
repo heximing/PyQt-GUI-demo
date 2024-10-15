@@ -22,8 +22,21 @@ import sys
 import time
 import traceback
 import concurrent.futures
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtCore import QObject, pyqtSignal, QRunnable, QThreadPool, QSize
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QWidget
+
+
+def long_running_task(arg1, arg2):
+    print("{}; long_running_task(arg1={}, arg2={})".format(time.ctime(), arg1, arg2))
+    # Perform some time-consuming operation
+    for i in range(3):
+        print("time.sleep({})".format(i))
+        time.sleep(.5)
+    return arg1 + arg2
+
+
+def handle_result(result):
+    print("Result:", result)
 
 
 class WorkerSignals(QObject):
@@ -33,7 +46,7 @@ class WorkerSignals(QObject):
     error = pyqtSignal(tuple)
 
 
-class Worker(QObject):
+class Worker(QRunnable):
     def __init__(self, func, *args, **kwargs):
         super().__init__()
         self.func = func
@@ -42,6 +55,22 @@ class Worker(QObject):
         self.signals = WorkerSignals()
 
     def run(self):
+        # try:
+        #     result = self.func(*self.args, **self.kwargs)
+        #     print("result = {} {}".format(type(result), result))
+        # except Exception as e:
+        #     print("{}; {}.Worker(QRunnable).run(); {} {}".format(time.ctime(), self, type(e), e))
+        #     traceback.print_exc()
+        #     exctype, value = sys.exc_info()[:2]
+        #     self.signals.error.emit((exctype, value, traceback.format_exc()))
+        # else:
+        #     self.signals.result.emit(result)  # Return the result of the processing
+        #     print("emitted result.")
+        # finally:
+        #     self.signals.finished.emit()  # Done
+        #     print("emitted finished.")
+
+        # FIXME: if start worker NOT in QMainWindow: RuntimeError: can't register atexit after shutdown
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(self.func, *self.args, **self.kwargs)
             future.add_done_callback(self.on_complete)
@@ -59,26 +88,51 @@ class Worker(QObject):
             print("emitted finished.")
 
 
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("QtConcurrent demo")
+        self.setMinimumSize(QSize(600, 300))
+
+        _main_layout = QVBoxLayout()
+
+        self.threadpool = QThreadPool()
+
+        self.button = QPushButton("Start Worker(QRunnable)")
+        self.button.clicked.connect(lambda s: self.start_thread(signal=s))
+        _main_layout.addWidget(self.button)
+
+        dummy_widget = QWidget()
+        dummy_widget.setLayout(_main_layout)
+        self.setCentralWidget(dummy_widget)
+
+    def start_thread(self, signal):
+        print("{}; start_thread(signal = {} {})".format(time.ctime(), type(signal), signal))
+        # FIXME: start worker in QMainWindow WILL execute `handle_result()` or `print`
+        worker = Worker(long_running_task, 2, 3)
+        worker.signals.finished.connect(lambda: print("Task finished"))
+        worker.signals.result.connect(handle_result)
+        self.threadpool.start(worker)
+
+
 if __name__ == "__main__":
     def excepthook(exc_type, exc_value, exc_tb):
         tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
         print("Error caught!!\n", tb)
         QApplication.quit()  # or QtWidgets.QApplication.exit(0)
 
-    def long_running_task(arg1, arg2):
-        # Perform some time-consuming operation
-        for i in range(3):
-            print("time.sleep({})".format(i))
-            # time.sleep(.5)  # FIXME: adding sleep here will NOT execute `handle_result()` or `print`
-        return arg1 + arg2
-
-    def handle_result(result):
-        print("Result:", result)
-
     sys.excepthook = excepthook
 
-    worker = Worker(long_running_task, 2, 3)
-    worker.signals.finished.connect(lambda: print("Task finished"))
-    worker.signals.result.connect(handle_result)
-    worker.run()
-    # print("End of '__main__'")  # FIXME: adding print here will NOT execute `handle_result()` or `print`
+    # FIXME: start worker here will NOT execute `handle_result()` or `print`
+    # threadpool = QThreadPool()
+    # worker = Worker(long_running_task, 2, 3)
+    # worker.signals.finished.connect(lambda: print("Task finished"))
+    # worker.signals.result.connect(handle_result)
+    # threadpool.start(worker)
+
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()
+
+    print("End of '__main__'")

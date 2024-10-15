@@ -75,7 +75,7 @@ class Worker(QRunnable):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("QtConcurrent demo")
+        self.setWindowTitle("QRunnable demo")
         self.setMinimumSize(QSize(600, 300))
 
         _main_layout = QVBoxLayout()
