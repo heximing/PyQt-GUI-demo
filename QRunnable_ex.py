@@ -115,7 +115,7 @@ class MainWindow(QMainWindow):
 
     def start_thread(self, signal, con: int):
         print("{}; start_thread(signal = {} {}, num={})".format(time.ctime(), type(signal), signal, con))
-        if self.mutex.tryLock():
+        if self.mutex.tryLock():  # FIXME: This does not work; QThreadPool will finish executing immediately.
             for i in range(con):
                 self.worker.append(Worker(self.long_running_task, i, 11))
                 self.worker[-1].signals.progress.connect(lambda s, num=i: self.update_label(signal=s, num=num))

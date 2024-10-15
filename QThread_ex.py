@@ -16,7 +16,7 @@ class WorkerThread(QThread):
 
     def run(self):
         for i in range(10):
-            self.update_label_signal.emit(f"Iteration {i}")
+            self.update_label_signal.emit("Iteration {}".format(i))
             self.sleep(1)
 
 
@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(dummy_widget)
 
     def start_thread(self):
+        print("start_thread()")
         self.worker.start()
 
     def update_label(self, text):
