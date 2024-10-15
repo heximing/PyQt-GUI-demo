@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
 
     def start_thread(self, signal):
         print("{}; start_thread(signal = {} {})".format(time.ctime(), type(signal), signal))
-        # FIXME: start worker in QMainWindow WILL execute `handle_result()` or `print`
+        # FIXME: start worker in QMainWindow WILL execute `handle_result()` and `print`
         worker = Worker(long_running_task, 2, 3)
         worker.signals.finished.connect(lambda: print("Task finished"))
         worker.signals.result.connect(handle_result)
